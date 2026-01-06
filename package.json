@@ -16,6 +16,7 @@
    },
   "author": "J_Wizzy_Tz",
   "dependencies": {
+        "@whiskeysockets/baileys": "^6.6.0",
         "adm-zip": "^0.5.16",
         "better-sqlite3": "^12.2.0",
         "acrcloud": "^1.4.0",
@@ -60,4 +61,3 @@
     "nodemon": "^2.0.19" 
   }
   }
-    
