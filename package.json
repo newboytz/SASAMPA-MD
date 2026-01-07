@@ -1,122 +1,62 @@
-const express = require('express');
-const app = express();
-const { default: makeWASocket, useMultiFileAuthState, delay } = require("@whiskeysockets/baileys");
-const pino = require("pino");
-
-const PORT = process.env.PORT || 10000;
-
-app.get('/', (req, res) => {
-    res.send(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SASAMPA-MD Pair Code</title>
-    <style>
-        body { background-color: #000; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .main-card { background: #0d0d0d; border: 2px solid #ff00ff; box-shadow: 0 0 25px #ff00ff; padding: 30px; border-radius: 20px; text-align: center; width: 90%; max-width: 400px; }
-        h1 { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; font-style: italic; }
-        input { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #ff00ff; color: #00ffff; border-radius: 8px; margin-top: 15px; box-sizing: border-box; outline: none; }
-        .btn-generate { background: #ff00ff; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; margin-top: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 0 15px #ff00ff; }
-        #result-container { display: none; margin-top: 20px; }
-        #result { padding: 15px; border: 1px dashed #00ffff; color: #00ffff; font-weight: bold; border-radius: 8px; margin-bottom: 10px; font-size: 24px; }
-        .btn-copy { background: #333; color: #00ffff; border: 1px solid #00ffff; padding: 10px; width: 100%; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        .btn-copy:hover { background: #00ffff; color: #000; }
-    </style>
-</head>
-<body>
-    <div class="main-card">
-        <div style="font-size: 50px;">🤖</div>
-        <h1>SASAMPA-MD</h1>
-        <p>Connect with WhatsApp (Start with 255)</p>
-        <input type="number" id="phoneNumber" placeholder="Example: 255626921790">
-        <button class="btn-generate" id="genBtn" onclick="getPairCode()">🔑 GENERATE PAIR CODE</button>
-        
-        <div id="result-container">
-            <div id="result"></div>
-            <button class="btn-copy" onclick="copyToClipboard()">📋 Copy Code</button>
-        </div>
-        <div id="status" style="margin-top:10px; font-size:12px; color:yellow;"></div>
-    </div>
-
-    <script>
-        let currentCode = "";
-
-        async function getPairCode() {
-            const num = document.getElementById('phoneNumber').value;
-            const status = document.getElementById('status');
-            const resultContainer = document.getElementById('result-container');
-            const resultBox = document.getElementById('result');
-
-            if (!num) { alert("Please enter your phone number!"); return; }
-
-            status.innerHTML = 'Generating code, please wait...';
-            resultContainer.style.display = 'none';
-
-            try {
-                const response = await fetch('/code?number=' + num);
-                const data = await response.json();
-
-                if (data.code) {
-                    currentCode = data.code;
-                    resultBox.innerHTML = 'CODE: ' + data.code;
-                    resultContainer.style.display = 'block';
-                    status.innerHTML = '';
-                    setTimeout(() => {
-                        alert("Done! Check your WhatsApp notification on top of your screen.");
-                    }, 500);
-                } else {
-                    status.innerHTML = "An error occurred. Please try again.";
-                }
-            } catch (e) {
-                status.innerHTML = "Server is sleeping! Refresh and try again.";
-            }
-        }
-
-        function copyToClipboard() {
-            if (!currentCode) return;
-            navigator.clipboard.writeText(currentCode);
-            alert("Code copied: " + currentCode);
-        }
-    </script>
-</body>
-</html>
-    `);
-});
-
-app.get('/code', async (req, res) => {
-    let num = req.query.number;
-    if (!num) return res.json({ error: "Number is required" });
-
-    const { state, saveCreds } = await useMultiFileAuthState('./session');
-    
-    const sock = makeWASocket({
-        auth: state,
-        printQRInTerminal: false,
-        logger: pino({ level: 'silent' }),
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
-    });
-
-    sock.ev.on('creds.update', saveCreds);
-
-    try {
-        await delay(2000); 
-        num = num.replace(/[^0-9]/g, '');
-        
-        const code = await sock.requestPairingCode(num);
-        
-        if (!res.headersSent) {
-            res.json({ code: code });
-        }
-    } catch (err) {
-        console.error(err);
-        if (!res.headersSent) {
-            res.json({ error: "Failed to connect." });
-        }
-    }
-});
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+{
+  "name": "SASAMPAMD",
+  "version": "1.8.0",
+  "description": "The best Whatsapp bot",
+  "main": "index.js",
+  "engines": {
+      "node": ">= 20.x",
+      "npm": ">= 10.x"
+   },
+  "scripts": {
+      "start": "node index.js",
+      "dev": "nodemon index.js",
+      "stop": "pkill -f node",
+      "restart": "npm stop && npm start",
+      "test": "echo \"Error: no test specified\" && exit 1"
+   },
+  "author": "J_Wizzy",
+  "dependencies": {
+        "adm-zip": "^0.5.16",
+        "better-sqlite3": "^12.2.0",
+        "acrcloud": "^1.4.0",
+        "awesome-phonenumber": "^7.4.0",
+        "axios": "^1.8.3",
+        "chalk": "^4.1.2",
+        "cheerio": "^1.1.0",
+        "check-disk-space": "^3.3.1",
+        "dotenv": "^16.5.0",
+        "express": "^4.19.2",
+        "file-type": "^16.5.3",
+        "figlet": "^1.7.0",   
+        "fluent-ffmpeg": "^2.1.3", 
+        "form-data": "^4.0.0",
+        "google-tts-api": "^2.0.2",
+        "js-confuser": "^2.0.0",
+        "jspdf": "^3.0.1",
+        "human-readable": "^0.2.1",
+        "https": "^1.0.0",
+        "jimp": "^0.16.13",
+        "lodash": "^4.17.21",
+        "lolcatjs": "^2.4.3",
+        "mathjs": "^14.6.0",
+        "megajs": "^1.3.2",
+        "moment-timezone": "^0.5.45",
+        "node-cache": "^5.1.2",
+        "node-fetch": "^2.7.0",
+        "node-os-utils": "^1.3.6",
+        "node-webpmux": "^3.1.0",
+        "os": "^0.1.1",
+        "pg": "^8.14.1",
+        "perf_hooks": "0.0.1",        
+        "performance-now": "^2.1.0",
+        "pino": "^8.14.1",
+        "steno": "^1.0.0",
+        "sequelize": "^6.37.5",
+        "sqlite3": "^5.1.7",
+        "systeminformation": "^5.27.7",
+        "yt-search": "^2.12.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19" 
+  }
+  }
