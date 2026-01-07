@@ -1,86 +1,121 @@
-const express = require("express");
-const app = express();
-const { default: makeWASocket, useMultiFileAuthState, delay } = require("@whiskeysockets/baileys");
-const pino = require("pino");
-
-const PORT = process.env.PORT || 3000;
-
-// Muonekano wa Website (HTML/CSS)
-app.get("/", (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>SASAMPA-MD PAIRING</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: white; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-                .card { background: rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); backdrop-filter: blur(10px); text-align: center; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; }
-                h1 { color: #25d366; margin-bottom: 10px; }
-                input { width: 100%; padding: 12px; margin: 20px 0; border-radius: 8px; border: none; outline: none; font-size: 16px; box-sizing: border-box; }
-                button { width: 100%; padding: 12px; background: #25d366; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
-                button:hover { background: #1ebe57; transform: scale(1.02); }
-                .footer { margin-top: 20px; font-size: 12px; opacity: 0.7; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>SASAMPA-MD</h1>
-                <p>Ingiza namba ya WhatsApp uanze (e.g. 255712345678)</p>
-                <form action="/pair" method="get">
-                    <input type="text" name="number" placeholder="255XXXXXXXXX" required>
-                    <button type="submit">PATA PAIRING CODE</button>
-                </form>
-                <div class="footer">Powered by Sasampa Core System</div>
-            </div>
-        </body>
-        </html>
-    `);
-});
-
-// Sehemu ya kutoa Pairing Code
-app.get("/pair", async (req, res) => {
-    let num = req.query.number;
-    if (!num) return res.send("Namba inahitajika!");
-
-    const { state, saveCreds } = await useMultiFileAuthState('./session');
-    const sock = makeWASocket({
-        auth: state,
-        logger: pino({ level: "silent" }),
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
-    });
-
-    try {
-        if (!sock.authState.creds.registered) {
-            await delay(3000);
-            num = num.replace(/[^0-9]/g, '');
-            const code = await sock.requestPairingCode(num);
-            
-            res.send(`
-                <body style="background: #0f2027; color: white; font-family: sans-serif; text-align: center; padding-top: 100px;">
-                    <div style="display: inline-block; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; border: 1px solid #25d366;">
-                        <h1 style="color: #25d366;">CODE YAKO NI:</h1>
-                        <h2 style="background: white; color: black; padding: 15px; border-radius: 10px; letter-spacing: 8px; font-size: 35px;">${code}</h2>
-                        <p>Fungua WhatsApp > Linked Devices > Link with Phone Number na uweke kodi hii.</p>
-                        <a href="/" style="color: #25d366; text-decoration: none;">Rudia Upya</a>
-                    </div>
-                </body>
-            `);
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SASAMPA-MD Pair Code</title>
+    <style>
+        /* CSS kwa ajili ya urembo wa Neon kama picha yako */
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
-    } catch (err) {
-        res.send("Error imetokea: " + err.message);
-    }
-
-    sock.ev.on("creds.update", saveCreds);
-    sock.ev.on("connection.update", async (update) => {
-        const { connection } = update;
-        if (connection === "open") {
-            // Hii sehemu inamfanya mtu afollow channel yako akishaunganisha tu
-            await sock.newsletterFollow("0029Vb7MBWK4yltXZB8Jmo1L@newsletter");
-            console.log("Mtumiaji Ameunganishwa!");
+        .main-card {
+            background: #0d0d0d;
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 25px #ff00ff;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
         }
-    });
-});
+        h1 {
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+            letter-spacing: 2px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #1a1a1a;
+            border: 1px solid #ff00ff;
+            color: #00ffff;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .btn-generate {
+            background: #ff00ff;
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: bold;
+            box-shadow: 0 0 15px #ff00ff;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-generate:active { transform: scale(0.95); }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px dashed #00ffff;
+            color: #00ffff;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.2em;
+            min-height: 30px;
+        }
+        .loading { color: yellow; font-style: italic; }
+    </style>
+</head>
+<body>
 
-app.listen(PORT, () => console.log("Server inafanya kazi kwenye port " + PORT));
-                        
+    <div class="main-card">
+        <div style="font-size: 50px;">🤖</div>
+        <h1>SASAMPA-MD</h1>
+        <p>Unganisha Bot yako ya WhatsApp</p>
+
+        <div style="text-align: left;">
+            <label style="font-size: 13px; color: #ccc;">Enter your WhatsApp (county code):</label>
+            <input type="number" id="phoneNumber" placeholder="Mfano: 25571xxxxx8">
+        </div>
+
+        <button class="btn-generate" onclick="getPairCode()">🔑 GENERATE PAIR CODE</button>
+
+        <div id="result">Connected...</div>
+    </div>
+
+    <script>
+        async function getPairCode() {
+            const num = document.getElementById('phoneNumber').value;
+            const resultBox = document.getElementById('result');
+
+            if (!num) {
+                alert("Tafadhali ingiza namba ya simu!");
+                return;
+            }
+
+            resultBox.innerHTML = '<span class="loading">Inatafuta code, subiri...</span>';
+
+            try {
+                // Hapa tunaunganisha na link yako ya render
+                // Tunatumia /code?number= kulingana na muundo wa bot nyingi za WhatsApp
+                const response = await fetch(`https://sasampa-md.onrender.com/code?number=${num}`);
+                const data = await response.json();
+
+                if (data.code) {
+                    resultBox.innerHTML = `<b style="font-size: 25px; color: #fff;">${data.code}</b>`;
+                    alert("Ingiza code hii kwenye WhatsApp yako (Linked Devices)");
+                } else {
+                    resultBox.innerHTML = "Imefeli! Jaribu tena baadaye.";
+                }
+            } catch (error) {
+                resultBox.innerHTML = "Hitilafu! Hakikisha seva yako ya Render iko hewani.";
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
+    
