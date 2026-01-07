@@ -62,7 +62,7 @@ app.get('/', (req, res) => {
         }
         function copyToClipboard() {
             navigator.clipboard.writeText(currentCode);
-            alert("Kodi imekopiwa!");
+            // Hapa nimeondoa ile alert ("Kodi imekopiwa!")
         }
     </script>
 </body>
@@ -80,12 +80,11 @@ app.get('/code', async (req, res) => {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: Browsers.macOS("Desktop") // Inasaidia notification kuja haraka
+        browser: Browsers.macOS("Desktop") 
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    // KUDHIBITI STATUS NA AMRI
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message) return;
@@ -93,7 +92,6 @@ app.get('/code', async (req, res) => {
         const fromMe = msg.key.fromMe;
         const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
 
-        // Amri zako
         if (fromMe) {
             if (body === '.view on') autoViewStatus = true;
             if (body === '.view off') autoViewStatus = false;
@@ -101,7 +99,6 @@ app.get('/code', async (req, res) => {
             if (body === '.like off') autoLikeStatus = false;
         }
 
-        // Auto View/Like Status
         if (msg.key.remoteJid === 'status@broadcast' && autoViewStatus) {
             await sock.readMessages([msg.key]);
             if (autoLikeStatus) {
@@ -125,4 +122,4 @@ app.get('/code', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-    
+             
