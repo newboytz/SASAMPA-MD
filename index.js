@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 10000;
 app.get('/', (req, res) => {
     res.send(`
 <!DOCTYPE html>
-<html lang="sw">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,8 +29,8 @@ app.get('/', (req, res) => {
     <div class="main-card">
         <div style="font-size: 50px;">🤖</div>
         <h1>SASAMPA-MD</h1>
-        <p>connect toWhatsApp (Enter the country code 255)</p>
-        <input type="number" id="phoneNumber" placeholder="example: 25562xxxxxx">
+        <p>Connect with WhatsApp (Start with 255)</p>
+        <input type="number" id="phoneNumber" placeholder="Example: 255626921790">
         <button class="btn-generate" id="genBtn" onclick="getPairCode()">🔑 GENERATE PAIR CODE</button>
         
         <div id="result-container">
@@ -49,9 +49,9 @@ app.get('/', (req, res) => {
             const resultContainer = document.getElementById('result-container');
             const resultBox = document.getElementById('result');
 
-            if (!num) { alert("Enter your number!"); return; }
+            if (!num) { alert("Please enter your phone number!"); return; }
 
-            status.innerHTML = 'waiting Code, subiri...';
+            status.innerHTML = 'Generating code, please wait...';
             resultContainer.style.display = 'none';
 
             try {
@@ -63,19 +63,21 @@ app.get('/', (req, res) => {
                     resultBox.innerHTML = 'CODE: ' + data.code;
                     resultContainer.style.display = 'block';
                     status.innerHTML = '';
-                    alert("Tayari! Angalia notification ya WhatsApp juu ya kioo chako.");
+                    setTimeout(() => {
+                        alert("Done! Check your WhatsApp notification on top of your screen.");
+                    }, 500);
                 } else {
-                    status.innerHTML = "Hitilafu imetokea. Jaribu tena.";
+                    status.innerHTML = "An error occurred. Please try again.";
                 }
             } catch (e) {
-                status.innerHTML = "Seva imelala! Refresh na ujaribu tena.";
+                status.innerHTML = "Server is sleeping! Refresh and try again.";
             }
         }
 
         function copyToClipboard() {
             if (!currentCode) return;
             navigator.clipboard.writeText(currentCode);
-            alert("Kodi imekopiwa: " + currentCode);
+            alert("Code copied: " + currentCode);
         }
     </script>
 </body>
@@ -85,29 +87,37 @@ app.get('/', (req, res) => {
 
 app.get('/code', async (req, res) => {
     let num = req.query.number;
-    if (!num) return res.json({ error: "Namba inahitajika" });
+    if (!num) return res.json({ error: "Number is required" });
+
     const { state, saveCreds } = await useMultiFileAuthState('./session');
+    
     const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
         browser: ["Ubuntu", "Chrome", "20.0.04"]
     });
+
+    sock.ev.on('creds.update', saveCreds);
+
     try {
-        if (!sock.authState.creds.registered) {
-            await delay(1500);
-            num = num.replace(/[^0-9]/g, '');
-            const code = await sock.requestPairingCode(num);
+        await delay(2000); 
+        num = num.replace(/[^0-9]/g, '');
+        
+        const code = await sock.requestPairingCode(num);
+        
+        if (!res.headersSent) {
             res.json({ code: code });
-        } else {
-            res.json({ error: "Tayari bot imeunganishwa!" });
         }
     } catch (err) {
-        res.json({ error: "Imeshindwa kuunganisha." });
+        console.error(err);
+        if (!res.headersSent) {
+            res.json({ error: "Failed to connect." });
+        }
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Bot imewaka kwenye port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
              
